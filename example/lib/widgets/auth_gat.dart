@@ -9,7 +9,9 @@ import 'package:kawaii_passion_hub_authentication/kawaii_passion_hub_authenticat
 import 'home.dart';
 
 class AuthGate extends StatelessWidget {
-  const AuthGate({Key? key}) : super(key: key);
+  const AuthGate({Key? key, required this.nextScreenBuilder}) : super(key: key);
+
+  final Widget Function(BuildContext) nextScreenBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,7 @@ class AuthGate extends StatelessWidget {
           print(
               '${snapshot.data!.newUser.name} - ${snapshot.data!.newUser.claims!['whitelisted']}');
         }
-        return const MyHomePage();
+        return nextScreenBuilder(context);
       },
     );
     auth.initialize();

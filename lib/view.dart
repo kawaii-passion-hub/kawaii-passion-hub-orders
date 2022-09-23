@@ -6,6 +6,24 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:kawaii_passion_hub_orders/kawaii_passion_hub_orders.dart';
 
+class NavigationService {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  Future<dynamic>? navigateTo(String routeName, {dynamic arguments}) {
+    return navigatorKey.currentState
+        ?.pushNamed(routeName, arguments: arguments);
+  }
+
+  void goBack() {
+    navigatorKey.currentState?.pop();
+  }
+
+  NavigationService._privateConstructor();
+  static final NavigationService _instance =
+      NavigationService._privateConstructor();
+  factory NavigationService() => _instance;
+}
+
 class OrdersDashboard extends StatelessWidget {
   OrdersDashboard({Key? key}) : super(key: key) {
     localBus = GetIt.I.get(instanceName: 'kawaii_passion_hub_orders');
@@ -19,7 +37,7 @@ class OrdersDashboard extends StatelessWidget {
       stream: localBus.on<OrdersUpdated>(),
       initialData: OrdersUpdated(OrdersState.current),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (!snapshot.hasData || snapshot.data!.orders.isEmpty) {
           return const LoadingPage();
         }
 
@@ -50,11 +68,11 @@ class OrdersDashboard extends StatelessWidget {
             itemBuilder: (context, index) {
               var order = orders.elementAt(index);
               return ListTile(
-                onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OrderDetailsView(order: order),
-                    )),
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  OrderDetailsView.route,
+                  arguments: OrderDetailsViewArguments(order.orderNumber),
+                ),
                 title: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: AlignmentDirectional.centerStart,
@@ -219,181 +237,210 @@ class CommentedOrderItem extends OrderItem {
   }
 }
 
+@immutable
+class OrderDetailsViewArguments {
+  final String orderId;
+
+  const OrderDetailsViewArguments(this.orderId);
+}
+
 class OrderDetailsView extends StatelessWidget {
-  const OrderDetailsView({Key? key, required this.order}) : super(key: key);
+  static const String route = '/orderDetails';
 
-  final Order order;
+  OrderDetailsView({Key? key}) : super(key: key) {
+    localBus = GetIt.I.get(instanceName: 'kawaii_passion_hub_orders');
+  }
 
+  late final EventBus localBus;
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    TextStyle unimportantStyle = theme.textTheme.bodyText2!;
-    Color? color = theme.textTheme.caption!.color;
-    unimportantStyle = unimportantStyle.copyWith(color: color);
+    final args =
+        ModalRoute.of(context)!.settings.arguments as OrderDetailsViewArguments;
 
-    List<Widget> details = List<Widget>.from(
-      [
-        Card(
-          clipBehavior: Clip.antiAlias,
-          elevation: 2,
-          shape: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.white)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.all(16),
-                color: theme.colorScheme.primary.withOpacity(0.7),
-                child: Text(
-                  'Customer',
-                  style: unimportantStyle,
-                ),
-              ),
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text(order.customer.fullName),
-              ),
-              Container(
-                alignment: Alignment.centerLeft,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                child: Text(order.customer.street),
-              ),
-              Container(
-                alignment: Alignment.centerLeft,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                child: Text('${order.customer.zipCode} ${order.customer.city}'),
-              ),
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                child: Text(order.customer.country),
-              ),
-            ],
-          ),
-        ),
-        Card(
-          clipBehavior: Clip.antiAlias,
-          elevation: 2,
-          shape: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.white)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.all(16),
-                color: theme.colorScheme.primary.withOpacity(0.7),
-                child: Text(
-                  'Products',
-                  style: unimportantStyle,
-                ),
-              ),
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.all(16),
-                child: DataTable(
-                  dataRowHeight: 100,
-                  columns: const <DataColumn>[
-                    DataColumn(
-                      label: Text('Quantity'),
+    return StreamBuilder<OrdersUpdated?>(
+        stream: localBus.on<OrdersUpdated>(),
+        initialData: OrdersUpdated(OrdersState.current),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData ||
+              !snapshot.data!.orders
+                  .any((element) => element.orderNumber == args.orderId)) {
+            return const LoadingPage();
+          }
+
+          Order order = snapshot.data!.orders
+              .firstWhere((element) => element.orderNumber == args.orderId);
+
+          final ThemeData theme = Theme.of(context);
+          TextStyle unimportantStyle = theme.textTheme.bodyText2!;
+          Color? color = theme.textTheme.caption!.color;
+          unimportantStyle = unimportantStyle.copyWith(color: color);
+
+          List<Widget> details = List<Widget>.from(
+            [
+              Card(
+                clipBehavior: Clip.antiAlias,
+                elevation: 2,
+                shape: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.white)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.all(16),
+                      color: theme.colorScheme.primary.withOpacity(0.7),
+                      child: Text(
+                        'Customer',
+                        style: unimportantStyle,
+                      ),
                     ),
-                    DataColumn(
-                      label: Text('Product'),
-                    )
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                      child: Text(order.customer.fullName),
+                    ),
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 4, horizontal: 16),
+                      child: Text(order.customer.street),
+                    ),
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 4, horizontal: 16),
+                      child: Text(
+                          '${order.customer.zipCode} ${order.customer.city}'),
+                    ),
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      child: Text(order.customer.country),
+                    ),
                   ],
-                  rows: List<DataRow>.generate(
-                    order.items.length,
-                    (index) => DataRow(
-                      color: MaterialStateProperty.resolveWith<Color?>(
-                          (Set<MaterialState> states) {
-                        // All rows will have the same selected color.
-                        if (states.contains(MaterialState.selected)) {
-                          return Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.08);
-                        }
-                        // Even rows will have a grey color.
-                        if (index.isEven) {
-                          return Colors.grey.withOpacity(0.3);
-                        }
-                        return null; // Use default value for other states and odd rows.
-                      }),
-                      cells: <DataCell>[
-                        DataCell(
-                          Text(order.items[index].quantity.toString()),
-                        ),
-                        DataCell(
-                          FittedBox(
-                            fit: BoxFit.fitHeight,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: orderItemDetail(
-                                  order.items[index], unimportantStyle),
-                            ),
+                ),
+              ),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                elevation: 2,
+                shape: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.white)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.all(16),
+                      color: theme.colorScheme.primary.withOpacity(0.7),
+                      child: Text(
+                        'Products',
+                        style: unimportantStyle,
+                      ),
+                    ),
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.all(16),
+                      child: DataTable(
+                        dataRowHeight: 100,
+                        columns: const <DataColumn>[
+                          DataColumn(
+                            label: Text('Quantity'),
+                          ),
+                          DataColumn(
+                            label: Text('Product'),
+                          )
+                        ],
+                        rows: List<DataRow>.generate(
+                          order.items.length,
+                          (index) => DataRow(
+                            color: MaterialStateProperty.resolveWith<Color?>(
+                                (Set<MaterialState> states) {
+                              // All rows will have the same selected color.
+                              if (states.contains(MaterialState.selected)) {
+                                return Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.08);
+                              }
+                              // Even rows will have a grey color.
+                              if (index.isEven) {
+                                return Colors.grey.withOpacity(0.3);
+                              }
+                              return null; // Use default value for other states and odd rows.
+                            }),
+                            cells: <DataCell>[
+                              DataCell(
+                                Text(order.items[index].quantity.toString()),
+                              ),
+                              DataCell(
+                                FittedBox(
+                                  fit: BoxFit.fitHeight,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: orderItemDetail(
+                                        order.items[index], unimportantStyle),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
-          ),
-        ),
-      ],
-    );
+          );
 
-    if (order.comment.isNotEmpty) {
-      details.insert(
-          0,
-          Card(
-            clipBehavior: Clip.antiAlias,
-            elevation: 2,
-            shape: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.white)),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Container(
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.all(16),
-                  color: theme.colorScheme.primary.withOpacity(0.7),
-                  child: Text(
-                    'Comment',
-                    style: unimportantStyle,
+          if (order.comment.isNotEmpty) {
+            details.insert(
+                0,
+                Card(
+                  clipBehavior: Clip.antiAlias,
+                  elevation: 2,
+                  shape: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.white)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.all(16),
+                        color: theme.colorScheme.primary.withOpacity(0.7),
+                        child: Text(
+                          'Comment',
+                          style: unimportantStyle,
+                        ),
+                      ),
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.all(16),
+                        child: Text(order.comment),
+                      ),
+                    ],
                   ),
-                ),
-                Container(
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.all(16),
-                  child: Text(order.comment),
-                ),
-              ],
-            ),
-          ));
-    }
+                ));
+          }
 
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text('${order.orderNumber} Details'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(5, 15, 5, 10),
-        child: SingleChildScrollView(
-          child: Column(children: details),
-        ),
-      ),
-    );
+          return Scaffold(
+            appBar: AppBar(
+              // Here we take the value from the MyHomePage object that was created by
+              // the App.build method, and use it to set our appbar title.
+              title: Text('${order.orderNumber} Details'),
+            ),
+            body: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 15, 5, 10),
+              child: SingleChildScrollView(
+                child: Column(children: details),
+              ),
+            ),
+          );
+        });
   }
 
   List<Widget> orderItemDetail(OrderItem item, TextStyle unimportantStyle) {

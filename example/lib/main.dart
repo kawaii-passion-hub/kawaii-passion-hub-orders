@@ -1,4 +1,5 @@
 import 'package:event_bus/event_bus.dart';
+import 'package:kawaii_passion_hub_orders/kawaii_passion_hub_orders.dart';
 import 'package:kawaii_passion_hub_orders_example/global_context.dart';
 import 'package:kawaii_passion_hub_orders_example/widgets/auth_gat.dart';
 import 'package:kawaii_passion_hub_orders_example/widgets/event_bus_widget.dart';
@@ -9,6 +10,7 @@ import 'package:kawaii_passion_hub_authentication/kawaii_passion_hub_authenticat
     as auth;
 import 'package:kawaii_passion_hub_orders/kawaii_passion_hub_orders.dart'
     as orders;
+import 'package:kawaii_passion_hub_orders_example/widgets/home.dart';
 import 'auth_firebase_options.dart';
 import 'firebase_options.dart';
 
@@ -59,7 +61,14 @@ class MyApp extends StatelessWidget {
           // is not restarted.
           primarySwatch: Colors.blue,
         ),
-        home: const AuthGate(),
+        initialRoute: '/',
+        navigatorKey: NavigationService().navigatorKey,
+        routes: {
+          '/': (context) =>
+              AuthGate(nextScreenBuilder: (c) => const MyHomePage()),
+          OrderDetailsView.route: (context) =>
+              AuthGate(nextScreenBuilder: (c) => orders.OrderDetailsView()),
+        },
       ),
     );
   }

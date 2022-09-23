@@ -1,11 +1,25 @@
 class OrdersState {
   static List<Order> current = List.empty();
+  static String? messagingToken;
 }
 
 class OrdersUpdated {
   final List<Order> orders;
 
   OrdersUpdated(this.orders);
+}
+
+class MessagingTokenUpdated {
+  final String? messagingToken;
+
+  MessagingTokenUpdated(this.messagingToken);
+}
+
+class CombinedEvent<T1, T2> {
+  final T1 event1;
+  final T2 event2;
+
+  CombinedEvent(this.event1, this.event2);
 }
 
 class Order {
