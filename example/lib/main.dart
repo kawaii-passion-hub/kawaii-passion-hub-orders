@@ -1,4 +1,9 @@
+import 'dart:ui';
+
 import 'package:event_bus/event_bus.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:kawaii_passion_hub_orders/kawaii_passion_hub_orders.dart';
 import 'package:kawaii_passion_hub_orders_example/global_context.dart';
 import 'package:kawaii_passion_hub_orders_example/widgets/auth_gat.dart';
@@ -14,6 +19,9 @@ import 'package:kawaii_passion_hub_orders_example/widgets/home.dart';
 import 'auth_firebase_options.dart';
 import 'firebase_options.dart';
 
+const String backgroundNotificationChannelName = 'my_foreground';
+const int backgroundNotificationChannelId = 888;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FirebaseApp ordersApp = await Firebase.initializeApp(
@@ -22,9 +30,99 @@ void main() async {
   FirebaseApp authApp = await Firebase.initializeApp(
       options: AuthFirebaseOptions.currentPlatform, name: 'auth');
   EventBus globalBus = initializeApp(authApp, ordersApp);
+  initializeBackgroundService();
   runApp(MyApp(
     eventBus: globalBus,
   ));
+}
+
+void initializeBackgroundService() async {
+  final service = FlutterBackgroundService();
+
+  /// OPTIONAL, using custom notification channel id
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    backgroundNotificationChannelName, // id
+    'Kawaii Passion Background Service', // title
+    description:
+        'This channel is for keeping track of the orders state.', // description
+    importance: Importance.low, // importance must be at low or higher level
+  );
+
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      // this will be executed when app is in foreground or background in separated isolate
+      onStart: onStartBackgroundService,
+
+      // auto start service
+      autoStart: true,
+      isForegroundMode: true,
+
+      notificationChannelId: backgroundNotificationChannelName,
+      initialNotificationTitle: 'Kawaii Passion Background Service',
+      initialNotificationContent: 'Initializing',
+      foregroundServiceNotificationId: backgroundNotificationChannelId,
+    ),
+    iosConfiguration: IosConfiguration(
+      // auto start service
+      autoStart: true,
+
+      // this will be executed when app is in foreground in separated isolate
+      onForeground: onStartBackgroundService,
+
+      // you have to enable background fetch capability on xcode project
+      onBackground: onIosBackground,
+    ),
+  );
+
+  service.startService();
+}
+
+@pragma('vm:entry-point')
+bool onIosBackground(ServiceInstance service) {
+  return true;
+}
+
+@pragma('vm:entry-point')
+void onStartBackgroundService(ServiceInstance service) async {
+  // Only available for flutter 3.0.0 and later
+  DartPluginRegistrant.ensureInitialized();
+
+  if (service is AndroidServiceInstance) {
+    service.on('setAsForeground').listen((event) {
+      service.setAsForegroundService();
+    });
+
+    service.on('setAsBackground').listen((event) {
+      service.setAsBackgroundService();
+    });
+  }
+
+  service.on('stopService').listen((event) {
+    service.stopSelf();
+  });
+
+  FirebaseApp ordersApp = await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  //FirebaseApp authApp = await Firebase.initializeApp(
+  //    options: AuthFirebaseOptions.currentPlatform, name: 'auth');
+
+  EventBus globalBus = EventBus();
+  GetIt.I.registerSingleton(globalBus);
+  //GetIt.I.registerSingleton(authApp, instanceName: auth.FirebaseAppName);
+  GetIt.I.registerSingleton(ordersApp, instanceName: orders.firebaseAppName);
+  GetIt.I.registerSingleton(service);
+  orders.initializeBackgroundService(
+      backgroundNotificationChannelId, backgroundNotificationChannelName,
+      useEmulator: useEmulator);
 }
 
 EventBus initializeApp(FirebaseApp authApp, FirebaseApp ordersApp) {

@@ -43,6 +43,10 @@ dependencies:
   get_it: ^7.2.0
   event_bus: ^2.0.0
   firebase_core: ^1.20.1
+  flutter_background_service: ^2.4.1
+  flutter_background_service_android: ^2.5.4
+  flutter_background_service_ios: ^2.3.1
+  flutter_local_notifications: ^11.0.1
 
 dev_dependencies:
   flutter_test:
