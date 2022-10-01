@@ -351,11 +351,13 @@ class Controller extends Disposable {
             order['stateMachineState']['name'],
             order.containsKey('customerComment')
                 ? order['customerComment']
-                : '');
+                : '',
+            DateTime.parse(order['createdAt']));
         ordersModel.add(orderModel);
       }
       OrdersState.current = ordersModel;
       localBus.fire(OrdersUpdated(ordersModel));
+      globalBus.fire(OrdersUpdated(ordersModel));
     } else {
       return;
     }
