@@ -31,9 +31,10 @@ class Order {
   final String state;
   final String comment;
   final DateTime issued;
+  final bool isOpen;
 
   Order(this.orderNumber, this.customer, this.items, this.price, this.paid,
-      this.state, this.comment, this.issued);
+      this.state, this.comment, this.issued, this.isOpen);
 }
 
 class OrderItem {

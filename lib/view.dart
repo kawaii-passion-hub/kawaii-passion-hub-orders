@@ -56,7 +56,7 @@ class OrdersDashboard extends StatelessWidget {
                     MaterialPageRoute(
                         builder: (context) => OpenOrderSummary(
                             openOrders: orders
-                                .where((element) => element.state == "Open")
+                                .where((element) => element.isOpen)
                                 .toList()))),
                 icon: const Icon(Icons.assignment_outlined),
                 tooltip: 'Open orders summary',
@@ -66,7 +66,8 @@ class OrdersDashboard extends StatelessWidget {
           body: ListView.builder(
             itemCount: orders.length,
             itemBuilder: (context, index) {
-              var order = orders.elementAt(index);
+              Order order = orders.elementAt(index);
+              Duration openSince = DateTime.now().difference(order.issued);
               return ListTile(
                 onTap: () => Navigator.pushNamed(
                   context,
@@ -76,12 +77,21 @@ class OrdersDashboard extends StatelessWidget {
                 title: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: AlignmentDirectional.centerStart,
-                    child: Text(order.orderNumber)),
+                    child: order.isOpen
+                        ? Text(order.orderNumber)
+                        : Row(
+                            children: [
+                              const Icon(Icons.check),
+                              const SizedBox(width: 8),
+                              Text(order.orderNumber),
+                            ],
+                          )),
                 subtitle: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                        '${order.customer.fullName} - ${order.price} € - ${order.state}')),
+                    child: Text(order.isOpen
+                        ? '${order.customer.fullName} - ${order.price} € - ${order.state} - since ${openSince.inDays}d'
+                        : '${order.customer.fullName} - ${order.price} € - ${order.state}')),
               );
             },
           ),
@@ -91,8 +101,8 @@ class OrdersDashboard extends StatelessWidget {
   }
 
   int compareOrders(Order a, Order b) {
-    bool aDone = a.state == "Done" || a.state == "Cancelled";
-    bool bDone = b.state == "Done" || b.state == "Cancelled";
+    bool aDone = !a.isOpen;
+    bool bDone = !b.isOpen;
     if (aDone && !bDone) {
       return 1;
     }
@@ -478,7 +488,7 @@ class LoadingPage extends StatelessWidget {
             ),
             SizedBox(height: 10),
             Text(
-              'Carregando',
+              'Loading',
               style: TextStyle(
                 color: Colors.white,
               ),

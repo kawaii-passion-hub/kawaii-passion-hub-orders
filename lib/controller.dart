@@ -99,14 +99,15 @@ void initializeBackgroundService(int backgroundNotificationChannelId,
         Map summary = event.snapshot.value as Map;
         flutterLocalNotificationsPlugin.show(
           backgroundNotificationChannelId,
-          'Kawaii Passion Background Service',
+          'Kawaii Passion Hub',
           'Open Orders: ${summary['open']}',
           NotificationDetails(
             android: AndroidNotificationDetails(
               backgroundNotificationChannelName,
               'Kawaii Passion Background Service',
-              icon: 'ic_bg_service_small',
+              icon: 'ic_notification_black_and_white_outline',
               ongoing: true,
+              number: summary['open'],
             ),
           ),
         );
@@ -114,49 +115,9 @@ void initializeBackgroundService(int backgroundNotificationChannelId,
         if (kDebugMode) {
           print('FLUTTER BACKGROUND SERVICE: ${summary['open']}');
         }
-
-        // if you don't using custom notification, uncomment this
-        // service.setForegroundNotificationInfo(
-        //   title: "My App Service",
-        //   content: "Updated at ${DateTime.now()}",
-        // );
       }
     }
   });
-
-  // bring to foreground
-  /* Timer.periodic(const Duration(seconds: 1), (timer) async {
-    if (service is AndroidServiceInstance) {
-      if (await service.isForegroundService()) {
-        /// OPTIONAL for use custom notification
-        /// the notification id must be equals with AndroidConfiguration when you call configure() method.
-        flutterLocalNotificationsPlugin.show(
-          backgroundNotificationChannelId,
-          'Kawaii Passion Background Service',
-          'Awesome ${DateTime.now()}',
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              backgroundNotificationChannelName,
-              'Kawaii Passion Background Service',
-              icon: 'ic_bg_service_small',
-              ongoing: true,
-            ),
-          ),
-        );
-
-        // if you don't using custom notification, uncomment this
-        // service.setForegroundNotificationInfo(
-        //   title: "My App Service",
-        //   content: "Updated at ${DateTime.now()}",
-        // );
-      }
-    }
-
-    /// you can see this log in logcat
-    if (kDebugMode) {
-      print('FLUTTER BACKGROUND SERVICE: ${DateTime.now()}');
-    }
-  }); */
 }
 
 class Controller extends Disposable {
@@ -343,16 +304,17 @@ class Controller extends Disposable {
           items.add(itemModel);
         }
         Order orderModel = Order(
-            order['orderNumber'],
-            customer,
-            items,
-            double.parse(order['price']['netPrice'].toString()),
-            true,
-            order['stateMachineState']['name'],
-            order.containsKey('customerComment')
-                ? order['customerComment']
-                : '',
-            DateTime.parse(order['createdAt']));
+          order['orderNumber'],
+          customer,
+          items,
+          double.parse(order['price']['netPrice'].toString()),
+          true,
+          order['stateMachineState']['name'],
+          order.containsKey('customerComment') ? order['customerComment'] : '',
+          DateTime.parse(order['createdAt']),
+          order['stateMachineState']['name'] != "Done" &&
+              order['stateMachineState']['name'] != "Cancelled",
+        );
         ordersModel.add(orderModel);
       }
       OrdersState.current = ordersModel;
