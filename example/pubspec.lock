@@ -458,11 +458,9 @@ packages:
   kawaii_passion_hub_authentication:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "v1.0.3"
-      resolved-ref: "210b84914064bdc9fa7b0438ea483fc2b25bd30f"
-      url: "https://github.com/kawaii-passion-hub/kawaii-passion-hub-authentication"
-    source: git
+      path: "../../kawaii-passion-hub-authentication"
+      relative: true
+    source: path
     version: "0.0.1"
   kawaii_passion_hub_orders:
     dependency: "direct main"

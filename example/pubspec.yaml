@@ -37,9 +37,7 @@ dependencies:
   kawaii_passion_hub_orders:
     path: ../
   kawaii_passion_hub_authentication:
-    git:
-      url: https://github.com/kawaii-passion-hub/kawaii-passion-hub-authentication
-      ref: v1.0.3
+    path: ../../kawaii-passion-hub-authentication
   get_it: ^7.2.0
   event_bus: ^2.0.0
   firebase_core: ^1.20.1

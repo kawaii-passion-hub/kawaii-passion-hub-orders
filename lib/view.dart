@@ -14,6 +14,10 @@ class NavigationService {
         ?.pushNamed(routeName, arguments: arguments);
   }
 
+  Future<T?>? navigateTo(Route<T> route) {
+    return navigatorKey.currentState?.push(route);
+  }
+
   void goBack() {
     navigatorKey.currentState?.pop();
   }
@@ -22,6 +26,15 @@ class NavigationService {
   static final NavigationService _instance =
       NavigationService._privateConstructor();
   factory NavigationService() => _instance;
+}
+
+class OrderDetailsToolbarExtensionQuery {
+  final List<Widget Function(BuildContext, String)> buildExtensions =
+      List.empty(growable: true);
+
+  void register(Widget Function(BuildContext, String) buildFunction) {
+    buildExtensions.add(buildFunction);
+  }
 }
 
 class OrdersDashboard extends StatelessWidget {
@@ -285,6 +298,14 @@ class OrderDetailsView extends StatelessWidget {
           Color? color = theme.textTheme.caption!.color;
           unimportantStyle = unimportantStyle.copyWith(color: color);
 
+          List<Widget> toolbarExtensions = List.empty(growable: true);
+          OrderDetailsToolbarExtensionQuery query =
+              OrderDetailsToolbarExtensionQuery();
+          GetIt.I.get<EventBus>().fire(query);
+          for (var builder in query.buildExtensions) {
+            toolbarExtensions.add(builder(context, args.orderId));
+          }
+
           List<Widget> details = List<Widget>.from(
             [
               Card(
@@ -442,6 +463,7 @@ class OrderDetailsView extends StatelessWidget {
               // Here we take the value from the MyHomePage object that was created by
               // the App.build method, and use it to set our appbar title.
               title: Text('${order.orderNumber} Details'),
+              actions: toolbarExtensions,
             ),
             body: Padding(
               padding: const EdgeInsets.fromLTRB(5, 15, 5, 10),

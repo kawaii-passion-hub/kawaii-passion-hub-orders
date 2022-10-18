@@ -25,9 +25,7 @@ dependencies:
   get_it: ^7.2.0
   google_api_availability: ^3.0.1
   kawaii_passion_hub_authentication:
-    git:
-      url: https://github.com/kawaii-passion-hub/kawaii-passion-hub-authentication
-      ref: v1.0.3
+    path: ../kawaii-passion-hub-authentication
   stream_transform: ^2.0.0
   synchronized: ^3.0.0+2
 
